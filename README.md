@@ -1,6 +1,6 @@
 # IOTA Sponsoring Service
 
-Our submission for the IOTA Foundation's Moveathon Europe edition.
+Our submission for the [IOTA Foundation's Moveathon](https://www.moveathon.build/europe) Europe edition.
 
 This repository contains the complete, runnable project, which combines the backend and frontend using Git submodules.
 
@@ -81,7 +81,7 @@ This will generate a `config.yaml` file and the Gas Station's new IOTA address.
 # Use the address generated from the previous command
 curl --location --request POST 'https://faucet.testnet.iota.cafe/gas' --header 'Content-Type: application/json' --data-raw '{
   "FixedAmountRequest": {
-       "recipient": "<GENERATED_ADDRESS>",
+       "recipient": "<GENERATED_ADDRESS>"
   }
 }'
 ```
