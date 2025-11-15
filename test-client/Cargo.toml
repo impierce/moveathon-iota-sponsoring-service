@@ -1,0 +1,12 @@
+[package]
+name = "test-client"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+iota-config = { git = "https://github.com/iotaledger/iota", tag = "v1.7.0", package = "iota-config" }
+iota-gas-station = { git = "https://github.com/iotaledger/gas-station", rev = "4b375e7" }
+iota-json-rpc-types = { git = "https://github.com/iotaledger/iota", tag = "v1.7.0", package = "iota-json-rpc-types" }
+iota-sdk = { git = "https://github.com/iotaledger/iota", tag = "v1.7.0", package = "iota-sdk" }
+iota-types = { git = "https://github.com/iotaledger/iota", tag = "v1.7.0", package = "iota-types" }
+tokio = { version = "1.46", features = ["full"] }

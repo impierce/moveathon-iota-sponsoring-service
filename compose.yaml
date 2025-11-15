@@ -1,0 +1,176 @@
+services:
+  mongodb:
+    image: mongo:8
+    container_name: mongodb
+    restart: always
+    ports:
+      - 27017:27017
+    command: "mongod --replSet rs0"
+    healthcheck:
+      test: |
+        mongosh --quiet --eval "try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] }).ok }"
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  iota-sponsoring-service:
+    build: ./iota-sponsoring-service
+    container_name: iota-sponsoring-service
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - SERVER_ADDRESS=0.0.0.0:8000
+      - MONGODB_URI=mongodb://mongodb:27017/iota-sponsoring-service?directConnection=true&retryWrites=false&replicaSet=rs0
+      - GAS_STATION_CONFIG_PATH=/app/gas-station.config.yaml
+      - GIT_REVISION=${GIT_REVISION:-unknown}
+      - RUST_LOG=debug
+      - LOG_FORMAT=text
+      - DEMO_DATA_INITIALIZATION_ENABLED=true
+      - CORS_ENABLED=true
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/readyz"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+    restart: unless-stopped
+    volumes:
+      - ${LOCAL_CONFIG_PATH:-./gas-station.config.yaml}:/app/gas-station.config.yaml
+
+  iota-sponsoring-ui:
+    build:
+      context: ./iot-gasstation-app
+      dockerfile: Dockerfile.bun
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000/graphql
+        NEXT_PUBLIC_WS_URL: ws://localhost:8000/graphql
+    container_name: iota-sponsoring-ui
+    depends_on:
+      iota-sponsoring-service:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/graphql
+      - NEXT_PUBLIC_WS_URL=wss://localhost:8000/graphql
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  redis:
+    image: redis:latest
+    container_name: gas-station-redis
+    volumes:
+      - redis_data:/data
+
+  iota-gas-station:
+    image: "${DOCKER_IMAGE:-iotaledger/gas-station:latest}"
+    # build:
+    #   context: ..
+    #   args:
+    #     - BUILD_DATE=${BUILD_DATE:-latest}
+    #     - GIT_REVISION=${GIT_REVISION:-latest}
+    #   dockerfile: docker/Dockerfile
+    container_name: iota-gas-station
+    command: ["--config-path", "/app/config.yaml"]
+    depends_on:
+      redis:
+        condition: service_started
+      iota-sponsoring-service:
+        condition: service_healthy
+    ports:
+      - "9527:9527" # RPC port
+      - "9184:9184" # Metrics port
+    environment:
+      - CONFIG_PATH=/app/config.yaml
+      - RUST_BACKTRACE=1
+      - TRANSACTIONS_LOGGING=true
+    volumes:
+      - ${LOCAL_CONFIG_PATH:-./gas-station.config.yaml}:/app/config.yaml
+
+  vector:
+    image: timberio/vector:latest-alpine
+    container_name: vector
+    volumes:
+      - ./iota-sponsoring-service/vector/vector.toml:/etc/vector/vector.toml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: ["--config", "/etc/vector/vector.toml"]
+    restart: unless-stopped
+    depends_on:
+      - iota-sponsoring-service
+
+  # TODO: we can not use these example organizations for demonstrating adding a client by URL because the frontend rejects `http` URLs.
+  # northbridge-institute-of-technology:
+  #   image: impiercetechnologies/ssi-agent:sha-4da7b9c
+  #   container_name: northbridge-institute-of-technology
+  #   ports:
+  #     - 3033:3033
+  #   depends_on:
+  #     iota-sponsoring-service:
+  #       condition: service_healthy
+  #   environment:
+  #     UNICORE__APPLICATION__URL: http://northbridge-institute-of-technology:3033
+  #     UNICORE__DID_METHODS__DID_IOTA_TEST__ENABLED: true
+  #     UNICORE__DID_METHODS__DID_IOTA_TEST__PREFERRED: true
+  #     UNICORE__DID_METHODS__DID_JWK__ENABLED: true
+  #     UNICORE__DID_METHODS__DID_KEY__ENABLED: true
+  #     UNICORE__EVENT_STORE__TYPE: in_memory
+  #     UNICORE__IOTA_SPONSORING_SERVICE: http://iota-gas-station:9527
+  #     UNICORE__PROFILE: development
+  #     UNICORE__SECRET_MANAGER__STRONGHOLD_PASSWORD: unsafe
+  #     UNICORE__SECRET_MANAGER__STRONGHOLD_PATH: /app/stronghold.dat
+  #     UNICORE__LOG_FORMAT: text
+  #     PKG_VERSION: sha-4da7b9c
+  #     REVISION: sha-4da7b9c
+
+  # pixelcart-online-store:
+  #   image: impiercetechnologies/ssi-agent:sha-4da7b9c
+  #   container_name: pixelcart-online-store
+  #   ports:
+  #     - 3034:3033
+  #   depends_on:
+  #     iota-sponsoring-service:
+  #       condition: service_healthy
+  #   environment:
+  #     UNICORE__APPLICATION__URL: http://pixelcart-online-store:3034
+  #     UNICORE__DID_METHODS__DID_IOTA_TEST__ENABLED: true
+  #     UNICORE__DID_METHODS__DID_IOTA_TEST__PREFERRED: true
+  #     UNICORE__DID_METHODS__DID_JWK__ENABLED: true
+  #     UNICORE__DID_METHODS__DID_KEY__ENABLED: true
+  #     UNICORE__EVENT_STORE__TYPE: in_memory
+  #     UNICORE__IOTA_SPONSORING_SERVICE: http://iota-gas-station:9527
+  #     UNICORE__PROFILE: development
+  #     UNICORE__SECRET_MANAGER__STRONGHOLD_PASSWORD: unsafe
+  #     UNICORE__SECRET_MANAGER__STRONGHOLD_PATH: /app/stronghold.dat
+  #     UNICORE__LOG_FORMAT: text
+  #     PKG_VERSION: sha-4da7b9c
+  #     REVISION: sha-4da7b9c
+
+  # ministry-of-civic-innovation:
+  #   image: impiercetechnologies/ssi-agent:sha-4da7b9c
+  #   container_name: ministry-of-civic-innovation
+  #   ports:
+  #     - 3035:3033
+  #   depends_on:
+  #     iota-sponsoring-service:
+  #       condition: service_healthy
+  #   environment:
+  #     UNICORE__APPLICATION__URL: http://ministry-of-civic-innovation:3035
+  #     UNICORE__DID_METHODS__DID_IOTA_TEST__ENABLED: true
+  #     UNICORE__DID_METHODS__DID_IOTA_TEST__PREFERRED: true
+  #     UNICORE__DID_METHODS__DID_JWK__ENABLED: true
+  #     UNICORE__DID_METHODS__DID_KEY__ENABLED: true
+  #     UNICORE__EVENT_STORE__TYPE: in_memory
+  #     UNICORE__IOTA_SPONSORING_SERVICE: http://iota-gas-station:9527
+  #     UNICORE__PROFILE: development
+  #     UNICORE__SECRET_MANAGER__STRONGHOLD_PASSWORD: unsafe
+  #     UNICORE__SECRET_MANAGER__STRONGHOLD_PATH: /app/stronghold.dat
+  #     UNICORE__LOG_FORMAT: text
+  #     PKG_VERSION: sha-4da7b9c
+  #     REVISION: sha-4da7b9c
+
+volumes:
+  mongodb_data:
+  mongodb_config:
+  redis_data:
