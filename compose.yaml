@@ -37,7 +37,7 @@ services:
       retries: 20
     restart: unless-stopped
     volumes:
-      - ${LOCAL_CONFIG_PATH:-./gas-station.config.yaml}:/app/gas-station.config.yaml
+      - ${LOCAL_CONFIG_PATH:-./config.yaml}:/app/gas-station.config.yaml
 
   iota-sponsoring-ui:
     build:
@@ -87,7 +87,7 @@ services:
       - RUST_BACKTRACE=1
       - TRANSACTIONS_LOGGING=true
     volumes:
-      - ${LOCAL_CONFIG_PATH:-./gas-station.config.yaml}:/app/config.yaml
+      - ${LOCAL_CONFIG_PATH:-./config.yaml}:/app/config.yaml
 
   vector:
     image: timberio/vector:latest-alpine
