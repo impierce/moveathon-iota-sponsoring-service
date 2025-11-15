@@ -1,6 +1,0 @@
-[submodule "iot-gasstation-app"]
-	path = iot-gasstation-app
-	url = https://github.com/Yummygum/iot-gasstation-app
-[submodule "iota-sponsoring-service"]
-	path = iota-sponsoring-service
-	url = https://github.com/impierce/iota-sponsoring-service
