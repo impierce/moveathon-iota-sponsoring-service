@@ -4,6 +4,19 @@ Our submission for the [IOTA Foundation's Moveathon](https://www.moveathon.build
 
 This repository contains the complete, runnable project, which combines the backend and frontend using Git submodules.
 
+---
+
+**NOTE**
+
+This project has been developed in two separate repositories (both links link to the specific commit used for this submission):
+
+- [IOTA Sponsoring Service Backend](https://github.com/impierce/iota-sponsoring-service/tree/e0f06d26856e8188f0db180e012f0f40c908ec36)
+- [IOTA Sponsoring Service UI](https://github.com/Yummygum/iot-gasstation-app/tree/d7c0b7ef19b314f99d48e3fc56dbc0f84a22fd1e)
+
+Both repositories are included as submodules in this main repository for ease of use.
+
+---
+
 ## The Team
 
 - [Donovan Roubos](https://github.com/donovanroubos) (https://yummygum.com/)
@@ -116,3 +129,7 @@ docker compose up --build -d
 ```
 
 You're all set! The frontend will be available at `http://localhost:3000`.
+
+## Demo Video
+
+[![IOTA Sponsoring Service Demo](https://img.youtube.com/vi/SUA042ZftKU/0.jpg)](https://www.youtube.com/watch?v=SUA042ZftKU)
